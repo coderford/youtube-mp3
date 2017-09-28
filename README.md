@@ -1,4 +1,4 @@
-## A command line utility to search and download songs from Youtube
+## Youtube-MP3
 
 Basically a wrapper around youtube-dl to enable easy searching and downloading songs from youtube in mp3 format.
 
@@ -26,4 +26,4 @@ Requires beautifulSoup4, youtube-dl with python3 and ffmpeg
 
 **Download the first search hit:**
 
-`y2mp3.py KEYWORD1 KEYWORD2 ...`
+`y2mp3.py --lucky KEYWORD1 KEYWORD2 ...`
