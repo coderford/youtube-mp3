@@ -59,7 +59,7 @@ if args.search :    # search and display result, then ask user which ones to dow
         dl_link(vid_links[song_number-1][1])
 
 elif args.lucky:    # search and download the first search result
-    search_soup = make_search_soup(args.search)
+    search_soup = make_search_soup(args.lucky)
     vid_links = get_vidlinks(search_soup)
     print('Feeling lucky huh?')
     print('Now downloading: ', vid_links[0][0])
