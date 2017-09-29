@@ -4,10 +4,20 @@ import argparse
 from os import system
 from bs4 import BeautifulSoup
 
+# some options:
+quiet = False
+get_list = False
+
+def conv_list_url(list_url):
+    return list_url.replace(list_url[list_url.find('watch'):list_url.find('list')],'playlist?')
+
 def make_search_soup(args): # args is a list of search keywords
-    base_url = "https://youtube.com/results?search_query="
+    base_url_vid = "https://youtube.com/results?sp=EgIQAVAU&q=" # these might have to updated repeatedly
+    base_url_list = "https://youtube.com/results?sp=EgIQA1AU&q="
     search_key = '+'.join(args)
-    url = base_url + search_key
+    if get_list:
+        url = base_url_list + search_key
+    else: url = base_url_vid + search_key
     search_request = requests.get(url)
     #print(search_request.status_code) # should be 200
     search_soup = BeautifulSoup(search_request.text, 'html.parser')
@@ -19,13 +29,25 @@ def get_vidlinks(soup):
     links = soup.findAll('a', {'class': 'yt-uix-tile-link'})
     for link in links:
         href = link.get('href')
-        if 'watch' in href and 'list' not in href: # don't want playlists right now...
-            vid_links.append([link.text, 'https://www.youtube.com/'+href])
+        if 'watch' in href and 'list' not in href: # don't want playlists right now..
+            vid_links.append((link.text, 'https://www.youtube.com'+href))
     return vid_links
+
+def get_listlinks(soup):
+    # extracting playlist links from soup and storing them into an array:
+    list_links = []
+    links = soup.findAll('a', {'class': 'yt-uix-tile-link'})
+    for link in links:
+        href = link.get('href')
+        if 'watch' in href and 'list' in href:
+            list_url = 'https://www.youtube.com'+href # ydl doesn't automatically download playlists with watchable links
+            list_url = conv_list_url(list_url)
+            list_links.append((link.text, list_url))
+    return list_links
 
 def dl_link(link):
     # lame system command:
-    command = "youtube-dl --extract-audio --audio-format mp3 --audio-quality 0 '{url}'".format(url=link)
+    command = "youtube-dl -x --yes-playlist --audio-format mp3 '{url}'".format(url=link)
     system(command)
 
 
@@ -41,33 +63,59 @@ exclusive_group.add_argument('-l', '--lucky', nargs='+',
                     help='search and download the first search result'
                    )
 exclusive_group.add_argument('url', nargs='?', help='url of song to be downloaded (optional)')  # nargs = '?' for optional argument
+parser.add_argument('-p', '--playlist', action='store_true',
+                    help='enable downloading playlist'
+                   )
 args = parser.parse_args()
 
 # processing command:
+if args.playlist:
+    get_list = True;
+
 if args.search :    # search and display result, then ask user which ones to download
     search_soup = make_search_soup(args.search)
-    vid_links = get_vidlinks(search_soup)
     print('Search Results:')
-    for i,link in enumerate(vid_links):
-        print('\t'+str(i+1)+'.', link[0])
-    print('Enter song numbers to download (0 to do nothing): ')
-    to_download = [int(x) for x in input().split()]
-    if to_download[0]==0:
-        exit()
-    for song_number in to_download:
-        print('Now downloading: ', vid_links[song_number-1][0])
-        dl_link(vid_links[song_number-1][1])
+    if get_list:
+        list_links = get_listlinks(search_soup)
+        for i,link in enumerate(list_links):
+            print('\t'+str(i+1)+'.', link[0])
+        print('Enter list numbers to download (0 to do nothing): ')
+        to_download = [int(x) for x in input().split()]
+        if to_download[0]==0:
+            exit()
+        for link_number in to_download:
+            print('Now downloading: ', list_links[link_number-1][1])
+            dl_link(list_links[link_number-1][1])
+    else:
+        vid_links = get_vidlinks(search_soup)
+        for i,link in enumerate(vid_links):
+            print('\t'+str(i+1)+'.', link[0])
+        print('Enter song numbers to download (0 to do nothing): ')
+        to_download = [int(x) for x in input().split()]
+        if to_download[0]==0:
+            exit()
+        for link_number in to_download:
+            print('Now downloading playlist: ', vid_links[link_number-1][1])
+            dl_link(vid_links[link_number-1][1])
 
 elif args.lucky:    # search and download the first search result
-    search_soup = make_search_soup(args.lucky)
-    vid_links = get_vidlinks(search_soup)
     print('Feeling lucky huh?')
-    print('Now downloading: ', vid_links[0][0])
-    dl_link(vid_links[0][1])
+    search_soup = make_search_soup(args.lucky)
+    if get_list:
+        list_links = get_listlinks(search_soup)
+        print('Now downloading: ', list_links[0][0])
+        dl_link(list_links[0][1])
+    else:
+        vid_links = get_vidlinks(search_soup)
+        print('Now downloading: ', vid_links[0][0])
+        dl_link(vid_links[0][1])
 
 else:    # default behavior: download the url supplied
     if args.url == None:
         parser.print_help()
         exit()
-    print('Now downloading: ', args.url)
-    dl_link(args.url)
+    the_url = args.url
+    if get_list:
+        the_url  = conv_list_url(the_url)
+    print('Now downloading: ', the_url)
+    dl_link(the_url)
