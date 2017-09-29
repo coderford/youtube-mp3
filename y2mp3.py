@@ -31,19 +31,19 @@ def dl_link(link):
 
 # parsing arguments:
 parser = argparse.ArgumentParser(description='Script to search and download songs as mp3 from Youtube')
-parser.add_argument('-s', '--search', nargs='+',    # nargs = '+' means 1 or more arguments is required
+exclusive_group = parser.add_mutually_exclusive_group()
+exclusive_group.add_argument('-s', '--search', nargs='+',    # nargs = '+' means 1 or more arguments is required
                     metavar = 'KEYWORD',
                     help='search and display results, and give option to download'
                    )
-parser.add_argument('-l', '--lucky', nargs='+',
+exclusive_group.add_argument('-l', '--lucky', nargs='+',
                     metavar = 'KEYWORD',
                     help='search and download the first search result'
                    )
-parser.add_argument('url', nargs='?', help='url of song to be downloaded (optional)')  # nargs = '?' is used to make positional arg optional
+exclusive_group.add_argument('url', nargs='?', help='url of song to be downloaded (optional)')  # nargs = '?' for optional argument
 args = parser.parse_args()
 
 # processing command:
-
 if args.search :    # search and display result, then ask user which ones to download
     search_soup = make_search_soup(args.search)
     vid_links = get_vidlinks(search_soup)
