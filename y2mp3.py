@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 import requests
 import argparse
-from os import system
+import os
 from bs4 import BeautifulSoup
 
 # some options:
@@ -45,10 +45,13 @@ def get_listlinks(soup):
             list_links.append((link.text, list_url))
     return list_links
 
-def dl_link(link):
+def dl_link(link, path=''):
     # lame system command:
-    command = "youtube-dl -x --yes-playlist --audio-format mp3 '{url}'".format(url=link)
-    system(command)
+    command = "youtube-dl -xwc --audio-format mp3 --audio-quality 0 --add-metadata --embed-thumbnail '{url}' ".format(url=link)
+    if path!='':
+        os.makedirs(path, exist_ok=True)
+        command = command + "-o '{path}/%(title)s.%(ext)s'".format(path=path)
+    os.system(command)
 
 
 # parsing arguments:
@@ -66,6 +69,7 @@ exclusive_group.add_argument('url', nargs='?', help='url of song to be downloade
 parser.add_argument('-p', '--playlist', action='store_true',
                     help='enable downloading playlist'
                    )
+parser.add_argument('-d', '--dir', default='',metavar='DIRECTORY', help='output directory for downloads')
 args = parser.parse_args()
 
 # processing command:
@@ -85,7 +89,7 @@ if args.search :    # search and display result, then ask user which ones to dow
             exit()
         for link_number in to_download:
             print('Now downloading: ', list_links[link_number-1][1])
-            dl_link(list_links[link_number-1][1])
+            dl_link(list_links[link_number-1][1], args.dir)
     else:
         vid_links = get_vidlinks(search_soup)
         for i,link in enumerate(vid_links):
@@ -96,7 +100,7 @@ if args.search :    # search and display result, then ask user which ones to dow
             exit()
         for link_number in to_download:
             print('Now downloading playlist: ', vid_links[link_number-1][1])
-            dl_link(vid_links[link_number-1][1])
+            dl_link(vid_links[link_number-1][1], args.dir)
 
 elif args.lucky:    # search and download the first search result
     print('Feeling lucky huh?')
@@ -104,11 +108,11 @@ elif args.lucky:    # search and download the first search result
     if get_list:
         list_links = get_listlinks(search_soup)
         print('Now downloading: ', list_links[0][0])
-        dl_link(list_links[0][1])
+        dl_link(list_links[0][1], args.dir)
     else:
         vid_links = get_vidlinks(search_soup)
         print('Now downloading: ', vid_links[0][0])
-        dl_link(vid_links[0][1])
+        dl_link(vid_links[0][1], args.dir)
 
 else:    # default behavior: download the url supplied
     if args.url == None:
@@ -118,4 +122,4 @@ else:    # default behavior: download the url supplied
     if get_list:
         the_url  = conv_list_url(the_url)
     print('Now downloading: ', the_url)
-    dl_link(the_url)
+    dl_link(the_url, args.dir)
