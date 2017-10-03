@@ -47,10 +47,10 @@ def get_listlinks(soup):
 
 def dl_link(link, path=''):
     # lame system command:
-    command = "youtube-dl -xwc --audio-format mp3 --audio-quality 0 --add-metadata --embed-thumbnail '{url}' ".format(url=link)
-    if path!='':
-        os.makedirs(path, exist_ok=True)
-        command = command + "-o '{path}/%(title)s.%(ext)s'".format(path=path)
+    os.makedirs(path, exist_ok=True)
+    command = "youtube-dl -xwc --download-archive {arc} --no-post-overwrites --audio-format mp3 \
+    --audio-quality 0 --add-metadata --embed-thumbnail '{url}' ".format(url=link, arc=path+"/downloaded.txt")
+    command = command + "-o '{path}/%(title)s.%(ext)s'".format(path=path)
     os.system(command)
 
 
@@ -69,13 +69,12 @@ exclusive_group.add_argument('url', nargs='?', help='url of song to be downloade
 parser.add_argument('-p', '--playlist', action='store_true',
                     help='enable downloading playlist'
                    )
-parser.add_argument('-d', '--dir', default='',metavar='DIRECTORY', help='output directory for downloads')
+parser.add_argument('-d', '--dir', default='.',metavar='DIRECTORY', help='output directory for downloads')
 args = parser.parse_args()
 
 # processing command:
 if args.playlist:
     get_list = True;
-
 if args.search :    # search and display result, then ask user which ones to download
     search_soup = make_search_soup(args.search)
     print('Search Results:')
@@ -88,7 +87,7 @@ if args.search :    # search and display result, then ask user which ones to dow
         if to_download[0]==0:
             exit()
         for link_number in to_download:
-            print('Now downloading: ', list_links[link_number-1][1])
+            print('Now downloading playlist: ', list_links[link_number-1][1])
             dl_link(list_links[link_number-1][1], args.dir)
     else:
         vid_links = get_vidlinks(search_soup)
@@ -99,7 +98,7 @@ if args.search :    # search and display result, then ask user which ones to dow
         if to_download[0]==0:
             exit()
         for link_number in to_download:
-            print('Now downloading playlist: ', vid_links[link_number-1][1])
+            print('Now downloading: ', vid_links[link_number-1][0])
             dl_link(vid_links[link_number-1][1], args.dir)
 
 elif args.lucky:    # search and download the first search result
