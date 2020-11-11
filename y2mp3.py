@@ -40,7 +40,10 @@ def get_search_data(args):
     search_key = '+'.join(args)
     response = requests.get(SEARCH_BASE_URL + search_key).text
 
-    jsontxt = re.findall(r"window\[\"ytInitialData\"\]\s*=\s*({.*});\s*window", response)[0]
+    re_search = re.findall(r"window\[\"ytInitialData\"\]\s*=\s*({.*});\s*window", response)
+    if len(re_search) == 0:
+        re_search = re.findall(r"var\s*ytInitialData\s*=\s*({.*});", response)
+    jsontxt = re_search[0]
 
     data = json.loads(jsontxt)
     data = data.get("contents").get("twoColumnSearchResultsRenderer").\
